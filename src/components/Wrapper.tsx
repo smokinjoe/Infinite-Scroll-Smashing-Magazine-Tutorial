@@ -5,56 +5,15 @@ import {
   useLazyLoading
 } from "./InfiniteScroller/customHooks";
 
+import { useImageReducer } from "./InfiniteScroller/store/imageReducer";
+import { usePageReducer } from "./InfiniteScroller/store/pageReducer";
+
 import "./wrapper.css";
 
-interface IImgReducer {
-  images: any[];
-  fetching: boolean;
-}
-
 const Wrapper = () => {
-  // Setup the image reducer and action dispatch
-  const imgReducer = (state: any, action: any): IImgReducer => {
-    switch (action.type) {
-      case "STACK_IMAGES":
-        return {
-          ...state,
-          images: state.images.concat(action.images)
-        };
-      case "FETCH_IMAGES":
-        return {
-          ...state,
-          fetching: action.fetching
-        };
-      default:
-        return state;
-    }
-  };
-  // this sets up,
-  //  - the imgData reducer store
-  //  - the imgDispatch action thingy
-  const [imgData, imgDispatch] = React.useReducer(imgReducer, {
-    images: [],
-    fetching: true
-  });
+  const [imgData, imgDispatch] = useImageReducer();
+  const [pager, pagerDispatch] = usePageReducer();
 
-  // Setup the page reducer and action dispatch
-  const pageReducer = (state: any, action: any) => {
-    switch (action.type) {
-      case "ADVANCE_PAGE":
-        return {
-          ...state,
-          page: state.page + 1
-        };
-      default:
-        return state;
-    }
-  };
-  // pager reducer store has a page property
-  // pagerDispatch is called to incremenet page
-  const [pager, pagerDispatch] = React.useReducer(pageReducer, { page: 0 });
-
-  // infinite scrolling setup!
   let bottomBoundaryRef = React.useRef(null);
 
   useFetch(pager, imgDispatch);
