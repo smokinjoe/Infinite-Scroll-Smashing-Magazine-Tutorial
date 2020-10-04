@@ -86,11 +86,42 @@ const Wrapper = () => {
     },
     [pagerDispatch]
   );
+  // only when dependencies change do we want to use scrollObserver
   React.useEffect(() => {
     if (bottomBoundaryRef.current) {
       scrollObserver(bottomBoundaryRef.current);
     }
   }, [scrollObserver, bottomBoundaryRef]);
+
+  // Implement lazy-loading
+  const imagesRef = React.useRef(null);
+
+  const imgObserver = React.useCallback((node) => {
+    const intObs = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.intersectionRatio > 0) {
+          const currentImg = en.target;
+          const newImgSrc = currentImg.dataset.src;
+
+          // only swap out the image source if the new url exists
+          if (!newImgSrc) {
+            console.error("Image source is invalid!");
+          } else {
+            currentImg.src = newImgSrc;
+          }
+          intObs.unobserve(node);
+        }
+      });
+    });
+    intObs.observe(node);
+  }, []);
+  React.useEffect(() => {
+    imagesRef.current = document.querySelectorAll(".card-img-top");
+
+    if (imagesRef.current) {
+      imagesRef.current.forEach((img) => imgObserver(img));
+    }
+  }, [imgObserver, imagesRef, imgData.images]);
 
   // render stuff
   return (
@@ -111,8 +142,11 @@ const Wrapper = () => {
                 <div className="card-body ">
                   <img
                     alt={author}
+                    data-src={download_url}
                     className="card-img-top"
-                    src={download_url}
+                    src={
+                      "https://picsum.photos/id/870/300/300?grayscale&blur=2"
+                    }
                   />
                 </div>
                 <div className="card-footer">
