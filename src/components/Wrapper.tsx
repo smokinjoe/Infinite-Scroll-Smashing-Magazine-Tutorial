@@ -1,4 +1,9 @@
 import * as React from "react";
+import {
+  useFetch,
+  useInfiniteScroll,
+  useLazyLoading
+} from "./InfiniteScroller/customHooks";
 
 import "./wrapper.css";
 
@@ -49,79 +54,12 @@ const Wrapper = () => {
   // pagerDispatch is called to incremenet page
   const [pager, pagerDispatch] = React.useReducer(pageReducer, { page: 0 });
 
-  // setting up a "listener" to fetch more images when pager.page changes
-  // NOTE: no freakin' clue what imgDispatch is there for
-  React.useEffect(() => {
-    imgDispatch({
-      type: "FETCHING_IMAGES",
-      fetching: true
-    });
-    fetch(`https://picsum.photos/v2/list?page=${pager.page}&limit=10`)
-      .then((data) => data.json())
-      .then((images) => {
-        imgDispatch({ type: "STACK_IMAGES", images });
-        imgDispatch({ type: "FETCHING_IMAGES", fetching: false });
-      })
-      .catch((e) => {
-        // handle error
-        imgDispatch({ type: "FETCHING_IMAGES", fetching: false });
-        return e;
-      });
-  }, [imgDispatch, pager.page]); // JOE: why is imgDispatch here?
-
   // infinite scrolling setup!
   let bottomBoundaryRef = React.useRef(null);
-  // using useCallback to ensure that since scrollObserver is called
-  // within a useEffect, we aren't getting tons of executions every
-  // time components are re-rendering
-  const scrollObserver = React.useCallback(
-    (node) => {
-      new IntersectionObserver((entries) => {
-        entries.forEach((en) => {
-          if (en.intersectionRatio > 0) {
-            pagerDispatch({ type: "ADVANCE_PAGE" });
-          }
-        });
-      }).observe(node);
-    },
-    [pagerDispatch]
-  );
-  // only when dependencies change do we want to use scrollObserver
-  React.useEffect(() => {
-    if (bottomBoundaryRef.current) {
-      scrollObserver(bottomBoundaryRef.current);
-    }
-  }, [scrollObserver, bottomBoundaryRef]);
 
-  // Implement lazy-loading
-  const imagesRef = React.useRef(null);
-
-  const imgObserver = React.useCallback((node) => {
-    const intObs = new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (en.intersectionRatio > 0) {
-          const currentImg = en.target;
-          const newImgSrc = currentImg.dataset.src;
-
-          // only swap out the image source if the new url exists
-          if (!newImgSrc) {
-            console.error("Image source is invalid!");
-          } else {
-            currentImg.src = newImgSrc;
-          }
-          intObs.unobserve(node);
-        }
-      });
-    });
-    intObs.observe(node);
-  }, []);
-  React.useEffect(() => {
-    imagesRef.current = document.querySelectorAll(".card-img-top");
-
-    if (imagesRef.current) {
-      imagesRef.current.forEach((img) => imgObserver(img));
-    }
-  }, [imgObserver, imagesRef, imgData.images]);
+  useFetch(pager, imgDispatch);
+  useLazyLoading(".card-img-top", imgData.images);
+  useInfiniteScroll(bottomBoundaryRef, pagerDispatch);
 
   // render stuff
   return (
